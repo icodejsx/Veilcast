@@ -76,3 +76,4 @@ describe("Prediction Market", function () {
     expect(balanceAfter).to.be.gt(balanceBefore);
   });
 });
+
