@@ -1,65 +1,80 @@
-import Image from "next/image";
+"use client";
+
+import { ConnectButton } from "@rainbow-me/rainbowkit";
+import Link from "next/link";
+import { useMarkets } from "@/app/hooks/useMarkets";
+import { getYesPercent, getVolume, formatEndTime } from "@/app/lib/odds";
 
 export default function Home() {
+  const { markets, isLoading } = useMarkets();
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main style={{ minHeight: "100vh", background: "#0a0a0a", color: "white" }}>
+      {/* Header */}
+      <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 32px", borderBottom: "1px solid #1a1a1a" }}>
+        <div style={{ fontSize: "22px", fontWeight: 600 }}>
+          Veil<span style={{ color: "#E84142" }}>cast</span>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+        <ConnectButton />
+      </header>
+
+      {/* Hero */}
+      <section style={{ padding: "48px 32px 24px" }}>
+        <h1 style={{ fontSize: "32px", fontWeight: 600, marginBottom: "8px" }}>
+          Prediction Markets
+        </h1>
+        <p style={{ color: "#888" }}>
+          Bet on the future. Powered by Avalanche.
+        </p>
+      </section>
+
+      {/* Markets grid */}
+      <section style={{ padding: "0 32px 48px" }}>
+        {isLoading ? (
+          <p style={{ color: "#666" }}>Loading markets…</p>
+        ) : markets.length === 0 ? (
+          <p style={{ color: "#666" }}>No markets yet.</p>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "16px" }}>
+            {markets.map((market) => {
+              const yesPercent = getYesPercent(market.totalYes, market.totalNo);
+              return (
+                <Link
+                  key={market.address}
+                  href={`/market/${market.address}`}
+                  style={{ textDecoration: "none", color: "inherit" }}
+                >
+                  <div style={{ background: "#141414", border: "1px solid #222", borderRadius: "16px", padding: "20px", cursor: "pointer", transition: "border-color 0.2s" }}>
+                    <div style={{ fontSize: "12px", color: "#666", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "12px" }}>
+                      Crypto
+                    </div>
+                    <div style={{ fontSize: "17px", fontWeight: 500, marginBottom: "20px", lineHeight: 1.4, minHeight: "48px" }}>
+                      {market.question}
+                    </div>
+
+                    {/* Odds bar */}
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
+                      <span style={{ fontSize: "28px", fontWeight: 600, color: "#1D9E75" }}>
+                        {yesPercent}%
+                      </span>
+                      <span style={{ fontSize: "13px", color: "#888" }}>YES</span>
+                    </div>
+                    <div style={{ height: "6px", background: "#222", borderRadius: "3px", overflow: "hidden", marginBottom: "16px" }}>
+                      <div style={{ width: `${yesPercent}%`, height: "100%", background: "#1D9E75" }} />
+                    </div>
+
+                    {/* Footer stats */}
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", color: "#666" }}>
+                      <span>{getVolume(market.totalYes, market.totalNo)} AVAX Vol</span>
+                      <span>{market.resolved ? "Resolved" : `Ends ${formatEndTime(market.endTime)}`}</span>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </section>
+    </main>
   );
 }

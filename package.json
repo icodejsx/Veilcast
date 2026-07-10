@@ -7,6 +7,10 @@
     "typescript": "^5.3.3"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^5.6.1"
+    "@openzeppelin/contracts": "^5.6.1",
+    "@rainbow-me/rainbowkit": "^2.2.11",
+    "@walletconnect/ethereum-provider": "^2.23.10",
+    "viem": "^2.40.0",
+    "wagmi": "^2.19.5"
   }
 }
