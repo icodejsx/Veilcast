@@ -15,7 +15,18 @@ export default function Home() {
         <div style={{ fontSize: "22px", fontWeight: 600 }}>
           Veil<span style={{ color: "#E84142" }}>cast</span>
         </div>
-        <ConnectWallet />
+
+
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <Link
+            href="/create"
+            style={{ fontSize: "14px", color: "#ccc", textDecoration: "none", padding: "10px 16px", border: "1px solid #333", borderRadius: "10px" }}
+          >
+            + Create market
+          </Link>
+          <ConnectWallet />
+        </div>
+    
       </header>
 
       {/* Hero */}

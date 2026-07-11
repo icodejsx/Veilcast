@@ -2,7 +2,9 @@
 
 import { use } from "react";
 import { useReadContract } from "wagmi";
+import { ResolvePanel } from "./ResolvePanel";
 import { BetPanel } from "./BetPanel";
+import { OddsChart } from "./OddsChart";
 import Link from "next/link";
 import { ConnectWallet } from "@/app/components/ConnectWallet";
 import { MARKET_ABI } from "@/app/config/contracts";
@@ -61,17 +63,24 @@ export default function MarketPage({
               <span style={{ fontSize: "44px", fontWeight: 600, color: "#1D9E75" }}>{yesPercent}%</span>
               <span style={{ fontSize: "15px", color: "#888" }}>chance YES</span>
             </div>
-            <div style={{ height: "220px", background: "#0f0f0f", border: "1px solid #1a1a1a", borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center", color: "#444", fontSize: "13px" }}>
-              Odds chart appears once betting begins
-            </div>
+            <OddsChart marketAddress={marketAddress} currentYesPercent={yesPercent} />
           </div>
 
-          <BetPanel
-            marketAddress={marketAddress}
-            yesPercent={yesPercent}
-            resolved={resolved}
-            onBetPlaced={() => refetch()}
-          />
+          <div>
+            <BetPanel
+              marketAddress={marketAddress}
+              yesPercent={yesPercent}
+              resolved={resolved}
+              onBetPlaced={() => refetch()}
+            />
+            <ResolvePanel
+              marketAddress={marketAddress}
+              endTime={endTime}
+              resolved={resolved}
+              outcome={info?.[3] ?? false}
+              onUpdate={() => refetch()}
+            />
+          </div>
         </div>
       )}
     </main>

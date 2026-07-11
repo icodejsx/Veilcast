@@ -6,7 +6,7 @@ async function main() {
   const factory = await ethers.getContractAt("MarketFactory", FACTORY_ADDRESS);
 
   const question = "TEST: Will this market resolve in 3 minutes?";
-  const endTime = Math.floor(Date.now() / 1000) + 180; // 3 minutes from now
+  const endTime = Math.floor(Date.now() / 1000) + 180;
 
   console.log("Creating fast test market...");
   console.log("Ends at:", new Date(endTime * 1000).toLocaleTimeString());
@@ -17,9 +17,10 @@ async function main() {
   const markets = await factory.getAllMarkets();
   const newMarket = markets[markets.length - 1];
 
-  console.log("\n✅ Test market created!");
-  console.log("📍 Address:", newMarket);
-  console.log("⏰ You have 3 minutes to bet, then you can resolve it.");
+  console.log("");
+  console.log("Test market created!");
+  console.log("Address:", newMarket);
+  console.log("You have 3 minutes to bet, then you can resolve it.");
 }
 
 main().catch((error) => {
