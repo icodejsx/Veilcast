@@ -1,13 +1,12 @@
-import { getDefaultConfig } from "@rainbow-me/rainbowkit";
+import { createConfig, http } from "wagmi";
 import { avalancheFuji } from "wagmi/chains";
-import { http } from "wagmi";
+import { injected } from "wagmi/connectors";
 
-export const config = getDefaultConfig({
-  appName: "Veilcast",
-  projectId: "cbd8d5b22d9542a89345943e95dcc3c4", // we'll get this in a sec
+export const config = createConfig({
   chains: [avalancheFuji],
+  connectors: [injected()],
   transports: {
     [avalancheFuji.id]: http("https://api.avax-test.network/ext/bc/C/rpc"),
   },
-  ssr: true, // Next.js uses server-side rendering
+  ssr: true,
 });

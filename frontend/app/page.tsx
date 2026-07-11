@@ -1,6 +1,6 @@
 "use client";
 
-import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { ConnectWallet } from "@/app/components/ConnectWallet";
 import Link from "next/link";
 import { useMarkets } from "@/app/hooks/useMarkets";
 import { getYesPercent, getVolume, formatEndTime } from "@/app/lib/odds";
@@ -15,7 +15,7 @@ export default function Home() {
         <div style={{ fontSize: "22px", fontWeight: 600 }}>
           Veil<span style={{ color: "#E84142" }}>cast</span>
         </div>
-        <ConnectButton />
+        <ConnectWallet />
       </header>
 
       {/* Hero */}

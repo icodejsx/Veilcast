@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { parseEther } from "viem";
-import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { ConnectWallet } from "@/app/components/ConnectWallet";
 import { MARKET_ABI } from "@/app/config/contracts";
 
 export function BetPanel({
@@ -88,7 +88,7 @@ export function BetPanel({
           This market is resolved
         </div>
       ) : !isConnected ? (
-        <ConnectButton />
+        <ConnectWallet />
       ) : (
         <button
           onClick={placeBet}
