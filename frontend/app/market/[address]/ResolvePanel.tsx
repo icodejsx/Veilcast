@@ -18,14 +18,12 @@ export function ResolvePanel({
 }) {
   const { address } = useAccount();
 
-  // Read who owns this market (the resolver)
   const { data: owner } = useReadContract({
     address: marketAddress,
     abi: MARKET_ABI,
     functionName: "owner",
   });
 
-  // Read this user's bets + claim status
   const { data: userBets, refetch: refetchBets } = useReadContract({
     address: marketAddress,
     abi: MARKET_ABI,
@@ -42,17 +40,19 @@ export function ResolvePanel({
     refetchBets();
   }
 
-  const isOwner = address && owner && address.toLowerCase() === (owner as string).toLowerCase();
-  const nowSec = Math.floor(Date.now() / 1000);
-  const ended = nowSec >= Number(endTime);
+  const isOwner =
+    address && owner && address.toLowerCase() === (owner as string).toLowerCase();
+  // eslint-disable-next-line react-hooks/purity
+  const nowSec = BigInt(Math.floor(Date.now() / 1000));
+  const ended = endTime > 0n && nowSec >= endTime;
 
   const bets = userBets as [bigint, bigint, boolean] | undefined;
   const yesBet = bets?.[0] ?? 0n;
   const noBet = bets?.[1] ?? 0n;
   const claimed = bets?.[2] ?? false;
 
-  // Did this user win?
-  const userWon = resolved && ((outcome && yesBet > 0n) || (!outcome && noBet > 0n));
+  const userWon =
+    resolved && ((outcome && yesBet > 0n) || (!outcome && noBet > 0n));
 
   function resolveMarket(result: boolean) {
     writeContract({
@@ -71,78 +71,59 @@ export function ResolvePanel({
     });
   }
 
-  const boxStyle = {
-    background: "#141414",
-    border: "1px solid #222",
-    borderRadius: "16px",
-    padding: "20px",
-    marginTop: "16px",
-  } as const;
+  // Nothing to show while betting is open
+  if (!ended && !resolved) return null;
 
-  // ─── RESOLVED: show claim or result ───
-  if (resolved) {
-    return (
-      <div style={boxStyle}>
-        <div style={{ fontSize: "14px", fontWeight: 500, color: "#ccc", marginBottom: "12px" }}>
-          Market resolved: {outcome ? "YES" : "NO"} won
-        </div>
-        {userWon && !claimed ? (
-          <button
-            onClick={claimWinnings}
-            disabled={isPending}
-            style={{ width: "100%", background: "#1D9E75", color: "white", border: "none", borderRadius: "10px", padding: "14px", fontSize: "15px", fontWeight: 600, cursor: "pointer", opacity: isPending ? 0.6 : 1 }}
-          >
-            {isPending ? "Claiming…" : "Claim winnings"}
-          </button>
-        ) : claimed ? (
-          <div style={{ fontSize: "13px", color: "#1D9E75", textAlign: "center" }}>✅ Winnings claimed</div>
-        ) : (
-          <div style={{ fontSize: "13px", color: "#666", textAlign: "center" }}>
-            {yesBet > 0n || noBet > 0n ? "Your side didn't win" : "You didn't bet on this market"}
-          </div>
-        )}
+  return (
+    <div className="px-5 pb-5">
+      <div className="border-t border-border-subtle pt-5">
+        {resolved ? (
+          userWon && !claimed ? (
+            <>
+              <div className="font-mono-nums text-[11px] tracking-wider text-yes mb-3">
+                YOU WON
+              </div>
+              <button
+                onClick={claimWinnings}
+                disabled={isPending}
+                className="w-full py-3 rounded-lg bg-yes hover:bg-yes/90 text-white text-[13px] font-medium transition-colors disabled:opacity-50"
+              >
+                {isPending ? "Claiming…" : "Claim winnings"}
+              </button>
+            </>
+          ) : claimed ? (
+            <div className="text-center py-2.5 text-[11px] text-yes">
+              Winnings claimed
+            </div>
+          ) : yesBet > 0n || noBet > 0n ? (
+            <div className="text-center py-2.5 text-[11px] text-muted">
+              Your side didn&apos;t win
+            </div>
+          ) : null
+        ) : isOwner ? (
+          <>
+            <div className="font-mono-nums text-[11px] tracking-wider text-muted mb-3">
+              RESOLVE · OWNER
+            </div>
+            <div className="grid grid-cols-2 gap-1.5">
+              <button
+                onClick={() => resolveMarket(true)}
+                disabled={isPending}
+                className="py-2.5 rounded-lg bg-yes hover:bg-yes/90 text-white text-xs font-medium transition-colors disabled:opacity-50"
+              >
+                Yes won
+              </button>
+              <button
+                onClick={() => resolveMarket(false)}
+                disabled={isPending}
+                className="py-2.5 rounded-lg bg-no hover:bg-no/90 text-white text-xs font-medium transition-colors disabled:opacity-50"
+              >
+                No won
+              </button>
+            </div>
+          </>
+        ) : null}
       </div>
-    );
-  }
-
-  // ─── ENDED + owner: show resolve buttons ───
-  if (ended && isOwner) {
-    return (
-      <div style={boxStyle}>
-        <div style={{ fontSize: "14px", fontWeight: 500, color: "#ccc", marginBottom: "12px" }}>
-          Resolve market (owner)
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-          <button
-            onClick={() => resolveMarket(true)}
-            disabled={isPending}
-            style={{ background: "#1D9E75", color: "white", border: "none", borderRadius: "10px", padding: "12px", fontSize: "14px", fontWeight: 600, cursor: "pointer" }}
-          >
-            YES won
-          </button>
-          <button
-            onClick={() => resolveMarket(false)}
-            disabled={isPending}
-            style={{ background: "#E24B4A", color: "white", border: "none", borderRadius: "10px", padding: "12px", fontSize: "14px", fontWeight: 600, cursor: "pointer" }}
-          >
-            NO won
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // ─── ENDED, not owner, not resolved ───
-  if (ended) {
-    return (
-      <div style={boxStyle}>
-        <div style={{ fontSize: "13px", color: "#666", textAlign: "center" }}>
-          Betting closed — awaiting resolution
-        </div>
-      </div>
-    );
-  }
-
-  // Market still open → show nothing (betting panel handles it)
-  return null;
+    </div>
+  );
 }

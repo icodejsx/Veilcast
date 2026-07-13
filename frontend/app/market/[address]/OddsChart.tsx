@@ -2,12 +2,13 @@
 
 import { useOddsHistory } from "@/app/hooks/useOddsHistory";
 import {
-  AreaChart,
-  Area,
+  LineChart,
+  Line,
   XAxis,
   YAxis,
   Tooltip,
   ResponsiveContainer,
+  CartesianGrid,
 } from "recharts";
 
 export function OddsChart({
@@ -19,49 +20,57 @@ export function OddsChart({
 }) {
   const { points, isLoading } = useOddsHistory(marketAddress);
 
-  const data = points.map((p) => ({
-    time: new Date(p.time * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+  const data = points.map((p, i) => ({
+    time: `#${i + 1}`,
     yes: p.yesPercent,
+    no: 100 - p.yesPercent,
   }));
 
-  data.push({ time: "Now", yes: currentYesPercent });
-
-  const boxStyle = {
-    height: "220px",
-    background: "#0f0f0f",
-    border: "1px solid #1a1a1a",
-    borderRadius: "12px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    color: "#444",
-    fontSize: "13px",
-  } as const;
+  data.push({
+    time: "Now",
+    yes: currentYesPercent,
+    no: 100 - currentYesPercent,
+  });
 
   if (isLoading) {
-    return <div style={boxStyle}>Loading odds history…</div>;
+    return <div className="py-8 text-center text-xs text-muted">Loading history…</div>;
   }
 
   if (data.length <= 1) {
-    return <div style={boxStyle}>Odds chart appears once betting begins</div>;
+    return (
+      <div className="py-6 text-center text-xs text-muted">
+        No trades yet — chart appears after the first bet
+      </div>
+    );
   }
 
   return (
-    <div style={{ height: "220px", background: "#0f0f0f", border: "1px solid #1a1a1a", borderRadius: "12px", padding: "16px" }}>
-      <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -20 }}>
-          <defs>
-            <linearGradient id="yesFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#1D9E75" stopOpacity={0.25} />
-              <stop offset="100%" stopColor="#1D9E75" stopOpacity={0} />
-            </linearGradient>
-          </defs>
-          <XAxis dataKey="time" tick={{ fill: "#666", fontSize: 11 }} axisLine={{ stroke: "#222" }} tickLine={false} />
-          <YAxis domain={[0, 100]} tick={{ fill: "#666", fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={(v) => v + "%"} />
-          <Tooltip contentStyle={{ background: "#141414", border: "1px solid #333", borderRadius: "8px", color: "white", fontSize: "13px" }} formatter={(value: number) => [value + "% YES", ""]} />
-          <Area type="monotone" dataKey="yes" stroke="#1D9E75" strokeWidth={2} fill="url(#yesFill)" dot={false} />
-        </AreaChart>
-      </ResponsiveContainer>
+    <div>
+      <div className="flex items-center gap-5 mb-3">
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-yes" />
+          <span className="text-xs text-dim">Yes</span>
+          <span className="font-mono-nums text-xs text-yes">{currentYesPercent}%</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-no" />
+          <span className="text-xs text-dim">No</span>
+          <span className="font-mono-nums text-xs text-no">{100 - currentYesPercent}%</span>
+        </div>
+      </div>
+
+      <div className="h-52">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={data} margin={{ top: 5, right: 8, bottom: 0, left: -24 }}>
+            <CartesianGrid strokeDasharray="2 4" stroke="rgba(255,255,255,0.04)" vertical={false} />
+            <XAxis dataKey="time" tick={{ fill: "#3a3a3a", fontSize: 10 }} axisLine={false} tickLine={false} />
+            <YAxis domain={[0, 100]} tick={{ fill: "#3a3a3a", fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => v + "%"} />
+            <Tooltip contentStyle={{ background: "#141414", border: "1px solid #333", borderRadius: "8px", fontSize: "12px" }} labelStyle={{ color: "#888" }} />
+            <Line type="stepAfter" dataKey="yes" name="Yes" stroke="#1D9E75" strokeWidth={2} dot={false} isAnimationActive={false} />
+            <Line type="stepAfter" dataKey="no" name="No" stroke="#E24B4A" strokeWidth={2} dot={false} isAnimationActive={false} />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 }

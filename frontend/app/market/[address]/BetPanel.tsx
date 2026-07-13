@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
-import { parseEther } from "viem";
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract } from "wagmi";
+import { parseEther, formatEther } from "viem";
 import { ConnectWallet } from "@/app/components/ConnectWallet";
 import { MARKET_ABI } from "@/app/config/contracts";
 
@@ -10,25 +10,57 @@ export function BetPanel({
   marketAddress,
   yesPercent,
   resolved,
+  ended,
+  totalYes,
+  totalNo,
   onBetPlaced,
 }: {
   marketAddress: `0x${string}`;
   yesPercent: number;
   resolved: boolean;
+  ended: boolean;
+  totalYes: bigint;
+  totalNo: bigint;
   onBetPlaced: () => void;
 }) {
-  const { isConnected } = useAccount();
+  const { isConnected, address } = useAccount();
   const [side, setSide] = useState<"yes" | "no">("yes");
-  const [amount, setAmount] = useState("1.0");
+  const [amount, setAmount] = useState("0.10");
 
   const { writeContract, data: hash, isPending, error } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
 
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
-    hash,
+  // Read user's existing position
+  const { data: userBets } = useReadContract({
+    address: marketAddress,
+    abi: MARKET_ABI,
+    functionName: "getUserBets",
+    args: address ? [address] : undefined,
+    query: { enabled: !!address },
   });
 
-  if (isSuccess) {
-    onBetPlaced();
+  const bets = userBets as [bigint, bigint, boolean] | undefined;
+  const yesBet = bets?.[0] ?? 0n;
+  const noBet = bets?.[1] ?? 0n;
+
+  if (isSuccess) onBetPlaced();
+
+  const noPercent = 100 - yesPercent;
+
+  // Payout math: your stake + your share of the losing pool, minus 2% fee
+  function calcPayout(): string {
+    const amt = Number(amount);
+    if (!amt || amt <= 0) return "0.00";
+
+    const yes = Number(formatEther(totalYes));
+    const no = Number(formatEther(totalNo));
+
+    const winPool = side === "yes" ? yes + amt : no + amt;
+    const losePool = side === "yes" ? no : yes;
+
+    const gross = amt + (amt / winPool) * losePool;
+    const payout = gross * 0.98;
+    return payout.toFixed(3);
   }
 
   function placeBet() {
@@ -41,51 +73,78 @@ export function BetPanel({
     });
   }
 
-  const noPercent = 100 - yesPercent;
+  const positionText =
+    yesBet > 0n
+      ? `${Number(formatEther(yesBet)).toFixed(2)} YES`
+      : noBet > 0n
+      ? `${Number(formatEther(noBet)).toFixed(2)} NO`
+      : "NONE";
 
   return (
-    <div style={{ background: "#141414", border: "1px solid #222", borderRadius: "16px", padding: "20px", height: "fit-content" }}>
-      <div style={{ fontSize: "14px", fontWeight: 500, color: "#ccc", marginBottom: "16px" }}>
-        Place your bet
+    <div className="p-5">
+      <div className="font-mono-nums text-[11px] tracking-wider text-muted mb-3">
+        PLACE BET
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "16px" }}>
+      {/* YES / NO */}
+      <div className="grid grid-cols-2 gap-1.5 mb-3.5">
         <button
           onClick={() => setSide("yes")}
-          style={{
-            border: side === "yes" ? "2px solid #1D9E75" : "1px solid #333",
-            background: side === "yes" ? "rgba(29,158,117,0.1)" : "transparent",
-            borderRadius: "10px", padding: "14px", textAlign: "center", cursor: "pointer", color: "white",
-          }}
+          disabled={resolved || ended}
+          className={`py-3 grid gap-0.5 justify-items-center rounded-lg transition-colors ${
+            side === "yes"
+              ? "bg-yes-bg border border-yes/50"
+              : "border border-border-subtle hover:border-border-strong"
+          } disabled:opacity-40`}
         >
-          <div style={{ fontSize: "13px", color: "#1D9E75", marginBottom: "4px" }}>YES</div>
-          <div style={{ fontSize: "20px", fontWeight: 600 }}>{yesPercent}¢</div>
+          <span className="font-mono-nums text-[10px] text-yes">YES</span>
+          <span className={`font-mono-nums text-[17px] ${side === "yes" ? "text-yes" : "text-dim"}`}>
+            {yesPercent}¢
+          </span>
         </button>
         <button
           onClick={() => setSide("no")}
-          style={{
-            border: side === "no" ? "2px solid #E24B4A" : "1px solid #333",
-            background: side === "no" ? "rgba(226,75,74,0.1)" : "transparent",
-            borderRadius: "10px", padding: "14px", textAlign: "center", cursor: "pointer", color: "white",
-          }}
+          disabled={resolved || ended}
+          className={`py-3 grid gap-0.5 justify-items-center rounded-lg transition-colors ${
+            side === "no"
+              ? "bg-no-bg border border-no/50"
+              : "border border-border-subtle hover:border-border-strong"
+          } disabled:opacity-40`}
         >
-          <div style={{ fontSize: "13px", color: "#E24B4A", marginBottom: "4px" }}>NO</div>
-          <div style={{ fontSize: "20px", fontWeight: 600 }}>{noPercent}¢</div>
+          <span className="font-mono-nums text-[10px] text-no">NO</span>
+          <span className={`font-mono-nums text-[17px] ${side === "no" ? "text-no" : "text-dim"}`}>
+            {noPercent}¢
+          </span>
         </button>
       </div>
 
-      <div style={{ marginBottom: "16px" }}>
-        <div style={{ fontSize: "12px", color: "#666", marginBottom: "6px" }}>Amount (AVAX)</div>
-        <input
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          style={{ width: "100%", boxSizing: "border-box", background: "#0f0f0f", border: "1px solid #333", borderRadius: "8px", padding: "12px", color: "white", fontSize: "16px" }}
-        />
+      {/* Amount */}
+      <div className="font-mono-nums text-[10px] text-muted mb-1.5">
+        AMOUNT · AVAX
+      </div>
+      <input
+        value={amount}
+        onChange={(e) => setAmount(e.target.value)}
+        disabled={resolved || ended}
+        className="w-full bg-background border border-border-strong rounded-lg px-3 py-2.5 font-mono-nums text-sm focus:outline-none focus:border-muted transition-colors mb-3.5 disabled:opacity-40"
+      />
+
+      {/* Payout preview */}
+      <div className="flex justify-between text-[11px] py-2.5 border-y border-border-subtle mb-3.5">
+        <span className="text-muted">Payout if {side}</span>
+        <span className={`font-mono-nums ${side === "yes" ? "text-yes" : "text-no"}`}>
+          {calcPayout()} AVAX
+        </span>
       </div>
 
+      {/* Action */}
       {resolved ? (
-        <div style={{ fontSize: "13px", color: "#666", textAlign: "center", padding: "12px", background: "#0f0f0f", borderRadius: "8px" }}>
-          This market is resolved
+        <div className="text-center py-3 text-xs text-muted border border-border-subtle rounded-lg">
+          Market resolved
+        </div>
+      ) : ended ? (
+        <div className="text-center py-3 text-xs text-muted border border-border-subtle rounded-lg">
+          Betting closed
         </div>
       ) : !isConnected ? (
         <ConnectWallet />
@@ -93,27 +152,51 @@ export function BetPanel({
         <button
           onClick={placeBet}
           disabled={isPending || isConfirming}
-          style={{
-            width: "100%", background: side === "yes" ? "#1D9E75" : "#E24B4A",
-            color: "white", border: "none", borderRadius: "10px", padding: "14px",
-            fontSize: "15px", fontWeight: 600, cursor: isPending || isConfirming ? "wait" : "pointer",
-            opacity: isPending || isConfirming ? 0.6 : 1,
-          }}
+          className={`w-full py-3 rounded-lg text-[13px] font-medium transition-colors ${
+            side === "yes"
+              ? "bg-yes hover:bg-yes/90"
+              : "bg-no hover:bg-no/90"
+          } text-white disabled:opacity-50`}
         >
-          {isPending ? "Confirm in wallet…" : isConfirming ? "Placing bet…" : `Buy ${side.toUpperCase()}`}
+          {isPending
+            ? "Confirm in wallet…"
+            : isConfirming
+            ? "Placing bet…"
+            : `Buy ${side}`}
         </button>
       )}
 
       {isSuccess && (
-        <div style={{ fontSize: "13px", color: "#1D9E75", textAlign: "center", marginTop: "12px" }}>
-          ✅ Bet placed!
-        </div>
+        <div className="text-center text-[11px] text-yes mt-2.5">Bet placed</div>
       )}
       {error && (
-        <div style={{ fontSize: "12px", color: "#E24B4A", marginTop: "12px", wordBreak: "break-word" }}>
-          {error.message.slice(0, 100)}
+        <div className="text-[10px] text-no mt-2.5 break-words">
+          {error.message.slice(0, 80)}
         </div>
       )}
+
+      {/* Meta */}
+      <div className="mt-5 pt-3.5 border-t border-border-subtle grid gap-2">
+        <div className="flex justify-between text-[11px]">
+          <span className="text-muted">Your position</span>
+          <span className="font-mono-nums text-dim">{positionText}</span>
+        </div>
+        <div className="flex justify-between text-[11px]">
+          <span className="text-muted">Platform fee</span>
+          <span className="font-mono-nums text-dim">2%</span>
+        </div>
+      <div className="flex justify-between text-[11px]">
+          <span className="text-muted">Contract</span>
+          <a
+            href={"https://testnet.snowtrace.io/address/" + marketAddress}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-mono-nums text-avax hover:underline"
+          >
+            {marketAddress.slice(0, 6)}…{marketAddress.slice(-3)} ↗
+          </a>
+        </div>
+      </div>
     </div>
   );
 }

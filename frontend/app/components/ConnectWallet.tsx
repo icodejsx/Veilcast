@@ -11,9 +11,9 @@ export function ConnectWallet() {
     return (
       <button
         onClick={() => disconnect()}
-        style={{ background: "#141414", color: "white", border: "1px solid #333", borderRadius: "10px", padding: "10px 16px", fontSize: "14px", fontWeight: 500, cursor: "pointer" }}
+        className="font-mono-nums text-[11px] px-3 py-1.5 rounded-lg border border-border-strong text-dim hover:text-foreground hover:border-muted transition-colors"
       >
-        {address.slice(0, 6)}…{address.slice(-4)}
+        {address.slice(0, 6).toUpperCase()}…{address.slice(-4).toUpperCase()}
       </button>
     );
   }
@@ -23,17 +23,11 @@ export function ConnectWallet() {
 
   return (
     <button
-      onClick={() => {
-        if (injectedConnector) {
-          connect({ connector: injectedConnector });
-        } else {
-          alert("No wallet found. Is MetaMask installed and enabled?");
-        }
-      }}
+      onClick={() => injectedConnector && connect({ connector: injectedConnector })}
       disabled={isPending}
-      style={{ background: "#E84142", color: "white", border: "none", borderRadius: "10px", padding: "10px 20px", fontSize: "14px", fontWeight: 600, cursor: "pointer", opacity: isPending ? 0.6 : 1 }}
+      className="text-[11px] px-3.5 py-1.5 rounded-lg bg-avax hover:bg-avax-hover text-white ft-medium transition-colors disabled:opacity-50"
     >
-      {isPending ? "Connecting…" : "Connect Wallet"}
+      {isPending ? "Connecting…" : "Connect"}
     </button>
   );
 }

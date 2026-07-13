@@ -5,8 +5,16 @@ import { usePublicClient } from "wagmi";
 import { formatEther, parseAbiItem } from "viem";
 
 export interface OddsPoint {
-  time: number;      // unix seconds
+  time: number;
   yesPercent: number;
+}
+
+// Module-level cache — persists across renders, shared by all components
+const cache = new Map<string, OddsPoint[]>();
+
+export function clearOddsCache(marketAddress?: string) {
+  if (marketAddress) cache.delete(marketAddress);
+  else cache.clear();
 }
 
 export function useOddsHistory(marketAddress: `0x${string}`) {
@@ -14,19 +22,26 @@ export function useOddsHistory(marketAddress: `0x${string}`) {
   const [points, setPoints] = useState<OddsPoint[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-
   useEffect(() => {
     if (!publicClient) return;
     const client = publicClient;
+
     async function fetchHistory() {
       try {
-        // Grab every BetPlaced event this market ever emitted
-      // Avalanche RPC caps getLogs at 2048 blocks per call.
-        // Scan recent blocks in chunks back to the market's likely deployment.
+        // Return cached history if we already fetched this market
+        const cached = cache.get(marketAddress);
+        if (cached) {
+          setPoints(cached);
+          setIsLoading(false);
+          return;
+        }
+
+        // Avalanche RPC caps getLogs at 2048 blocks, so scan in chunks
         const latestBlock = await client.getBlockNumber();
         const CHUNK = 2000n;
-        const MAX_LOOKBACK = 100000n; // ~how far back to search
-        const startBlock = latestBlock > MAX_LOOKBACK ? latestBlock - MAX_LOOKBACK : 0n;
+        const MAX_LOOKBACK = 20000n;
+        const startBlock =
+          latestBlock > MAX_LOOKBACK ? latestBlock - MAX_LOOKBACK : 0n;
 
         const logs = [];
         for (let from = startBlock; from <= latestBlock; from += CHUNK) {
@@ -43,7 +58,7 @@ export function useOddsHistory(marketAddress: `0x${string}`) {
           logs.push(...chunkLogs);
         }
 
-        // Replay them in order, tracking running totals
+        // Replay bets in order, tracking running pool totals
         let runningYes = 0;
         let runningNo = 0;
         const history: OddsPoint[] = [];
@@ -56,13 +71,14 @@ export function useOddsHistory(marketAddress: `0x${string}`) {
           else runningNo += amount;
 
           const total = runningYes + runningNo;
-          const yesPercent = total === 0 ? 50 : Math.round((runningYes / total) * 100);
+          const yesPercent =
+            total === 0 ? 50 : Math.round((runningYes / total) * 100);
 
-          // Get the block's timestamp for the x-axis
-const block = await client.getBlock({ blockNumber: log.blockNumber });
+          const block = await client.getBlock({ blockNumber: log.blockNumber });
           history.push({ time: Number(block.timestamp), yesPercent });
         }
 
+        cache.set(marketAddress, history);
         setPoints(history);
       } catch (err) {
         console.error("Failed to fetch odds history:", err);

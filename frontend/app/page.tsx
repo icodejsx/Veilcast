@@ -1,91 +1,140 @@
 "use client";
 
-import { ConnectWallet } from "@/app/components/ConnectWallet";
+import { useState } from "react";
 import Link from "next/link";
+
+import { ConnectWallet } from "@/app/components/ConnectWallet";
+import { Ticker } from "@/app/components/Ticker";
+import { FeaturedMarket } from "@/app/components/FeaturedMarket";
+import { MarketRow } from "@/app/components/MarketRow";
 import { useMarkets } from "@/app/hooks/useMarkets";
-import { getYesPercent, getVolume, formatEndTime } from "@/app/lib/odds";
+import { MarketCard } from "./components/MarketCard";
+
+const FILTERS = ["All", "Crypto", "Sports", "Resolved"];
 
 export default function Home() {
   const { markets, isLoading } = useMarkets();
+  const [filter, setFilter] = useState("All");
+
+  // Pick the featured market: highest volume, not resolved
+  // eslint-disable-next-line react-hooks/purity
+  const nowSec = BigInt(Math.floor(Date.now() / 1000));
+  const liveMarkets = markets.filter((m) => !m.resolved && m.endTime > nowSec);
+
+  const featured =
+    liveMarkets.length > 0
+      ? liveMarkets.reduce((best, m) =>
+          m.totalYes + m.totalNo > best.totalYes + best.totalNo ? m : best
+        )
+      : markets[0];
+
+  // The rest go in the list (exclude the featured one)
+  const rest = markets.filter((m) => m.address !== featured?.address);
+
+  const filtered =
+    filter === "Resolved" ? rest.filter((m) => m.resolved) : rest;
 
   return (
-    <main style={{ minHeight: "100vh", background: "#0a0a0a", color: "white" }}>
-      {/* Header */}
-      <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 32px", borderBottom: "1px solid #1a1a1a" }}>
-        <div style={{ fontSize: "22px", fontWeight: 600 }}>
-          Veil<span style={{ color: "#E84142" }}>cast</span>
-        </div>
+    <main className="min-h-screen bg-background text-foreground">
+      {/* ─── Ticker ─── */}
+      <Ticker markets={markets} />
 
+      {/* ─── Header ─── */}
+      <header className="border-b border-border-subtle">
+        <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
+          <div className="flex items-center gap-7">
+            <Link href="/" className="text-base font-semibold tracking-tight">
+              Veil<span className="text-avax">cast</span>
+            </Link>
+            <nav className="hidden sm:flex gap-5 text-xs">
+              <span className="text-foreground">Markets</span>
+              <span className="text-muted hover:text-dim transition-colors cursor-pointer">
+                Portfolio
+              </span>
+              <span className="text-muted hover:text-dim transition-colors cursor-pointer">
+                Activity
+              </span>
+            </nav>
+          </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <Link
-            href="/create"
-            style={{ fontSize: "14px", color: "#ccc", textDecoration: "none", padding: "10px 16px", border: "1px solid #333", borderRadius: "10px" }}
-          >
-            + Create market
-          </Link>
-          <ConnectWallet />
+          <div className="flex items-center gap-2">
+            <Link
+              href="/create"
+              className="text-xs px-3 py-1.5 rounded-lg border border-border-strong text-dim hover:text-foreground hover:border-muted transition-colors"
+            >
+              Create
+            </Link>
+            <ConnectWallet />
+          </div>
         </div>
-    
       </header>
 
-      {/* Hero */}
-      <section style={{ padding: "48px 32px 24px" }}>
-        <h1 style={{ fontSize: "32px", fontWeight: 600, marginBottom: "8px" }}>
-          Prediction Markets
-        </h1>
-        <p style={{ color: "#888" }}>
-          Bet on the future. Powered by Avalanche.
-        </p>
-      </section>
-
-      {/* Markets grid */}
-      <section style={{ padding: "0 32px 48px" }}>
-        {isLoading ? (
-          <p style={{ color: "#666" }}>Loading markets…</p>
-        ) : markets.length === 0 ? (
-          <p style={{ color: "#666" }}>No markets yet.</p>
-        ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "16px" }}>
-            {markets.map((market) => {
-              const yesPercent = getYesPercent(market.totalYes, market.totalNo);
-              return (
-                <Link
-                  key={market.address}
-                  href={`/market/${market.address}`}
-                  style={{ textDecoration: "none", color: "inherit" }}
-                >
-                  <div style={{ background: "#141414", border: "1px solid #222", borderRadius: "16px", padding: "20px", cursor: "pointer", transition: "border-color 0.2s" }}>
-                    <div style={{ fontSize: "12px", color: "#666", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "12px" }}>
-                      Crypto
-                    </div>
-                    <div style={{ fontSize: "17px", fontWeight: 500, marginBottom: "20px", lineHeight: 1.4, minHeight: "48px" }}>
-                      {market.question}
-                    </div>
-
-                    {/* Odds bar */}
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
-                      <span style={{ fontSize: "28px", fontWeight: 600, color: "#1D9E75" }}>
-                        {yesPercent}%
-                      </span>
-                      <span style={{ fontSize: "13px", color: "#888" }}>YES</span>
-                    </div>
-                    <div style={{ height: "6px", background: "#222", borderRadius: "3px", overflow: "hidden", marginBottom: "16px" }}>
-                      <div style={{ width: `${yesPercent}%`, height: "100%", background: "#1D9E75" }} />
-                    </div>
-
-                    {/* Footer stats */}
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", color: "#666" }}>
-                      <span>{getVolume(market.totalYes, market.totalNo)} AVAX Vol</span>
-                      <span>{market.resolved ? "Resolved" : `Ends ${formatEndTime(market.endTime)}`}</span>
-                    </div>
-                  </div>
-                </Link>
-              );
-            })}
+      {isLoading ? (
+        <div className="max-w-6xl mx-auto px-6 py-12">
+          <div className="h-48 bg-surface rounded-xl animate-pulse mb-8" />
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="h-16 bg-surface rounded-lg animate-pulse"
+              />
+            ))}
           </div>
-        )}
-      </section>
+        </div>
+      ) : markets.length === 0 ? (
+        <div className="max-w-6xl mx-auto px-6 py-24 text-center">
+          <div className="text-xl mb-2">No markets yet</div>
+          <p className="text-sm text-muted mb-6">
+            Be the first to ask a question.
+          </p>
+          <Link
+            href="/create"
+            className="inline-block text-sm px-5 py-2.5 rounded-lg bg-avax hover:bg-avax-hover transition-colors font-medium"
+          >
+            Create a market
+          </Link>
+        </div>
+      ) : (
+        <>
+          {/* ─── Featured ─── */}
+          {featured && <FeaturedMarket market={featured} />}
+
+          {/* ─── Filters ─── */}
+          <div className="max-w-6xl mx-auto px-6 pt-6 pb-2 flex items-center gap-4">
+            {FILTERS.map((f) => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className={`text-xs pb-1 transition-colors ${
+                  filter === f
+                    ? "text-foreground border-b border-avax"
+                    : "text-muted hover:text-dim"
+                }`}
+              >
+                {f}
+              </button>
+            ))}
+            <span className="ml-auto font-mono-nums text-[10px] text-muted tracking-wide">
+              {markets.length} MARKETS
+            </span>
+          </div>
+
+          {/* ─── Market rows ─── */}
+          <section className="max-w-6xl mx-auto px-6 pb-20">
+            {filtered.length === 0 ? (
+              <div className="py-16 text-center text-sm text-muted">
+                No markets in this filter.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filtered.map((market) => (
+                  <MarketCard key={market.address} market={market} />
+                ))}
+              </div>
+            )}
+          </section>
+        </>
+      )}
     </main>
   );
 }
