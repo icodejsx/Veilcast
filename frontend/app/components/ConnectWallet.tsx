@@ -20,22 +20,38 @@ export function ConnectWallet() {
     );
   }
 
-  const injected = connectors.find((c) => c.type === "injected");
-  const wc = connectors.find((c) => c.id === "walletConnect");
+ const injectedConnector = connectors.find((c) => c.type === "injected");
+  const wcConnector = connectors.find(
+    (c) => c.id === "walletConnect" || c.type === "walletConnect"
+  );
 
-  // Is a browser wallet actually available? (false on mobile)
   const hasInjected =
-    typeof window !== "undefined" && typeof window.ethereum !== "undefined";
+    typeof window !== "undefined" &&
+    typeof (window as any).ethereum !== "undefined";
 
-  function handleClick() {
-    // No extension (mobile) → go straight to WalletConnect
-    if (!hasInjected && wc) {
-      connect({ connector: wc });
-      return;
-    }
-    // Extension available → show the picker
-    setOpen((o) => !o);
-  }
+    function handleClick() {
+        // Desktop with extension → show picker
+        if (hasInjected) {
+          setOpen((o) => !o);
+          return;
+        }
+    
+        // Mobile: deep-link into MetaMask's in-app browser
+        const isMobile =
+          typeof navigator !== "undefined" &&
+          /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    
+        if (isMobile) {
+          const host = window.location.host + window.location.pathname;
+          window.location.href = `https://metamask.app.link/dapp/${host}`;
+          return;
+        }
+    
+        // Desktop without extension → WalletConnect QR
+        if (wcConnector) {
+          connect({ connector: wcConnector });
+        }
+      }
 
   return (
     <div className="relative">
@@ -54,10 +70,10 @@ export function ConnectWallet() {
             onClick={() => setOpen(false)}
           />
           <div className="absolute right-0 top-full mt-2 z-50 w-44 bg-surface border border-border-strong rounded-xl p-1.5 shadow-xl">
-            {injected && (
+          {injectedConnector && (
               <button
                 onClick={() => {
-                  connect({ connector: injected });
+                    connect({ connector: injectedConnector });
                   setOpen(false);
                 }}
                 className="w-full text-left px-3 py-2 text-xs rounded-lg hover:bg-surface-hover transition-colors"
@@ -65,10 +81,10 @@ export function ConnectWallet() {
                 Browser wallet
               </button>
             )}
-            {wc && (
+            {wcConnector && (
               <button
                 onClick={() => {
-                  connect({ connector: wc });
+                  connect({ connector: wcConnector });
                   setOpen(false);
                 }}
                 className="w-full text-left px-3 py-2 text-xs rounded-lg hover:bg-surface-hover transition-colors"
