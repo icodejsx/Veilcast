@@ -62,7 +62,7 @@ export function useOddsHistory(marketAddress: `0x${string}`) {
 
         // Batch the block-timestamp lookups (one per bet) — much faster
         for (const log of logs) {
-          const isYes = log.args.isYes as blean;
+          const isYes = log.args.isYes as boolean;
           const amount = Number(formatEther(log.args.amount as bigint));
 
           if (isYes) runningYes += amount;
