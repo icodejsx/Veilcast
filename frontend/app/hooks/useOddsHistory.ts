@@ -9,7 +9,6 @@ export interface OddsPoint {
   yesPercent: number;
 }
 
-// Module-level cache — persists across renders, shared by all components
 const cache = new Map<string, OddsPoint[]>();
 
 export function clearOddsCache(marketAddress?: string) {
@@ -28,7 +27,6 @@ export function useOddsHistory(marketAddress: `0x${string}`) {
 
     async function fetchHistory() {
       try {
-        // Return cached history if we already fetched this market
         const cached = cache.get(marketAddress);
         if (cached) {
           setPoints(cached);
@@ -36,10 +34,10 @@ export function useOddsHistory(marketAddress: `0x${string}`) {
           return;
         }
 
-        // Avalanche RPC caps getLogs at 2048 blocks, so scan in chunks
         const latestBlock = await client.getBlockNumber();
-        const CHUNK = 2000n;
-        const MAX_LOOKBACK = 20000n;
+        const CHUNK = 2048n;
+        // Wider lookback now that we have a dedicated RPC (~2 weeks of blocks)
+        const MAX_LOOKBACK = 600000n;
         const startBlock =
           latestBlock > MAX_LOOKBACK ? latestBlock - MAX_LOOKBACK : 0n;
 
@@ -58,13 +56,13 @@ export function useOddsHistory(marketAddress: `0x${string}`) {
           logs.push(...chunkLogs);
         }
 
-        // Replay bets in order, tracking running pool totals
         let runningYes = 0;
         let runningNo = 0;
         const history: OddsPoint[] = [];
 
+        // Batch the block-timestamp lookups (one per bet) — much faster
         for (const log of logs) {
-          const isYes = log.args.isYes as boolean;
+          const isYes = log.args.isYes as blean;
           const amount = Number(formatEther(log.args.amount as bigint));
 
           if (isYes) runningYes += amount;

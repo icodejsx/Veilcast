@@ -32,7 +32,9 @@ export default function Home() {
   const rest = markets.filter((m) => m.address !== featured?.address);
 
   const filtered =
-    filter === "Resolved" ? rest.filter((m) => m.resolved) : rest;
+    filter === "Resolved"
+      ? rest.filter((m) => m.resolved)
+      : rest.filter((m) => !m.resolved);
 
   return (
     <main className="min-h-screen bg-background text-foreground">
