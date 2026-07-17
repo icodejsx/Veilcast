@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Sparkline } from "./Sparkline";
+
 import type { MarketData } from "@/app/hooks/useMarkets";
 import { getYesPercent, getVolume, formatEndTime } from "@/app/lib/odds";
 import { inferCategory } from "@/app/lib/category";

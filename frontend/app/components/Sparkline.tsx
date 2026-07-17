@@ -1,6 +1,6 @@
 "use client";
 
-import { useOddsHistory } from "@/app/hooks/useOddsHistory";
+import { useMarketHistory } from "@/app/hooks/useAllHistory";
 import { Line, LineChart, ResponsiveContainer, YAxis } from "recharts";
 
 export function Sparkline({
@@ -10,9 +10,9 @@ export function Sparkline({
   marketAddress: `0x${string}`;
   currentYesPercent: number;
 }) {
-  const { points, isLoading } = useOddsHistory(marketAddress);
+  const { points, isLoading } = useMarketHistory(marketAddress);
 
-  const data = points.map((p) => ({ yes: p.yesPercent }));
+  const data = points.map((p) => ({ yes: p.yes }));
   data.push({ yes: currentYesPercent });
 
   if (isLoading || data.length <= 1) {
@@ -25,7 +25,7 @@ export function Sparkline({
         <LineChart data={data}>
           <YAxis domain={[0, 100]} hide />
           <Line
-            type="monotone"
+            type="stepAfter"
             dataKey="yes"
             stroke="#1D9E75"
             strokeWidth={1.5}

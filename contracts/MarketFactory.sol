@@ -28,12 +28,17 @@ contract MarketFactory {
         admin = msg.sender;
     }
 
+    modifier onlyAdmin() {
+        require(msg.sender == admin, "Only admin can create markets");
+        _;
+    }
+
     // ─── Market Creation ───────────────────────────────────────
 
-    function createMarket(
+function createMarket(
         string memory _question,
         uint256 _endTime
-    ) external returns (address) {
+    ) external onlyAdmin returns (address) {
         // Deploy a brand new PredictionMarket contract
         PredictionMarket market = new PredictionMarket(
             _question,

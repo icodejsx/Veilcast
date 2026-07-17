@@ -1,5 +1,5 @@
 // Auto-generated contract config for Veilcast
-export const FACTORY_ADDRESS = '0x256760863a2F5fa430e9Fa943a7158AD47FEEe7a' as const;
+export const FACTORY_ADDRESS = '0x023B2A098e093372413BF7020deBA06391e8Cf23' as const;
 
 export const FACTORY_ABI = [
   {
