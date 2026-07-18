@@ -12,7 +12,7 @@ export function MarketCard({ market }: { market: MarketData }) {
   const noPercent = 100 - yesPercent;
   const volume = getVolume(market.totalYes, market.totalNo);
 
-  // eslint-disable-next-line react-hooks/purity
+  // eslint-disable-next-line react-hooks/puritynn
   const nowSec = BigInt(Math.floor(Date.now() / 1000));
   const ended = market.endTime <= nowSec;
   const category = inferCategory(market.question);
@@ -38,7 +38,7 @@ export function MarketCard({ market }: { market: MarketData }) {
           <Sparkline
             marketAddress={market.address}
             currentYesPercent={yesPercent}
-          />
+          /> 
         </div>
 
         <div className="flex items-baseline justify-between mb-2.5">
