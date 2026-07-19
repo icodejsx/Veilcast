@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { useRouter } from "next/navigation";
+import { useIsAdmin } from "@/app/hooks/useIsAdmin";
 import Link from "next/link";
 import { ConnectWallet } from "@/app/components/ConnectWallet";
 import { FACTORY_ADDRESS, FACTORY_ABI } from "@/app/config/contracts";
@@ -10,7 +11,7 @@ import { FACTORY_ADDRESS, FACTORY_ABI } from "@/app/config/contracts";
 export default function CreatePage() {
   const { isConnected } = useAccount();
   const router = useRouter();
-
+  const { isAdmin } = useIsAdmin();
   const [question, setQuestion] = useState("");
   const [endDate, setEndDate] = useState("");
 
@@ -56,6 +57,22 @@ export default function CreatePage() {
         </Link>
         <ConnectWallet />
       </header>
+
+      {!isAdmin ? (
+        <div className="max-w-md mx-auto px-6 py-24 text-center">
+          <div className="text-lg mb-2">Admin only</div>
+          <p className="text-sm text-muted mb-6">
+            Market creation is restricted to the platform admin. Markets are
+            curated to ensure clear, resolvable questions.
+          </p>
+          <Link
+            href="/"
+            className="inline-block text-sm px-5 py-2.5 rounded-lg border border-border-strong text-dim hover:text-foreground transition-colors"
+          >
+            Back to markets
+          </Link>
+        </div>
+      ) : (
 
       <div style={{ maxWidth: "600px", margin: "0 auto", padding: "48px 32px" }}>
         <Link href="/" style={{ fontSize: "13px", color: "#888", textDecoration: "none" }}>
@@ -144,6 +161,7 @@ export default function CreatePage() {
           </div>
         )}
       </div>
+      )}
     </main>
   );
 }

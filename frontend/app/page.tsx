@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-
+import { useIsAdmin } from "@/app/hooks/useIsAdmin";
 import { ConnectWallet } from "@/app/components/ConnectWallet";
 import { Ticker } from "@/app/components/Ticker";
 import { FeaturedMarket } from "@/app/components/FeaturedMarket";
@@ -20,7 +20,7 @@ export default function Home() {
   // eslint-disable-next-line react-hooks/purity
   const nowSec = BigInt(Math.floor(Date.now() / 1000));
   const liveMarkets = markets.filter((m) => !m.resolved && m.endTime > nowSec);
-
+  const { isAdmin } = useIsAdmin();
   const featured =
     liveMarkets.length > 0
       ? liveMarkets.reduce((best, m) =>
@@ -60,12 +60,14 @@ export default function Home() {
           </div>
 
           <div className="flex items-center gap-2">
-            <Link
-              href="/create"
-              className="text-xs px-3 py-1.5 rounded-lg border border-border-strong text-dim hover:text-foreground hover:border-muted transition-colors"
-            >
-              Create
-            </Link>
+          {isAdmin && (
+              <Link
+                href="/create"
+                className="text-xs px-3 py-1.5 rounded-lg border border-border-strong text-dim hover:text-foreground hover:border-muted transition-colors"
+              >
+                Create
+              </Link>
+            )}
             <ConnectWallet />
           </div>
         </div>
