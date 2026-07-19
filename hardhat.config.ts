@@ -25,8 +25,18 @@ const config: HardhatUserConfig = {
   },
   etherscan: {
     apiKey: {
-      avalancheFujiTestnet: "snowtrace", // Snowtrace is free, no key needed
+      avalancheFujiTestnet: "snowtrace",
     },
+    customChains: [
+      {
+        network: "avalancheFujiTestnet",
+        chainId: 43113,
+        urls: {
+          apiURL: "https://api.routescan.io/v2/network/testnet/evm/43113/etherscan",
+          browserURL: "https://testnet.snowtrace.io",
+        },
+      },
+    ],
   },
 };
 
